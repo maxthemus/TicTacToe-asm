@@ -5,7 +5,14 @@ tools needed to run?
 - ld
 - make
 
-How to run?
+How to assemble program
 ```
 make
 ```
+
+How to run?
+```
+./output
+```
+
+
