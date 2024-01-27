@@ -14,7 +14,3 @@ How to run?
 ```
 ./output
 ```
-
-TODO:
-- Main Menu with start game and exit options
-- Input validation for Main Menu
