@@ -14,6 +14,12 @@ section .data
     spacer db '+-------------------+',10
     spacerLen equ $ - spacer
 
+    mainBannerText db "|    TIC TAC TOE    |", 10
+    mainBannerTextLen equ $ - mainBannerText
+
+    mainMenuText db "[0] Start Game",10,"[1] Exit",10, "> "
+    mainMenuTextLen equ $ - mainMenuText
+
     gameOverText db 'GAME OVER'
     gameOverTextLen equ $ - gameOverText
 
@@ -26,10 +32,38 @@ section .data
     boardVertical db " | "
     boardVerticalLen equ $ - boardVertical
 
+    currentTurnText db "Current turn = "
+    currentTurnTextLen equ $ - currentTurnText
+
+    turnInputText db "Tile num [0 - 8] = "
+    turnInputTextLen equ $ - turnInputText
+
+    invalidInputText db "InvalidInput, Please Try again",10
+    invalidInputTextLen equ $ - invalidInputText
+
 
 section .text
     global _start
 _start:
+    main:
+    call mainMenu
+
+    ; Checking input buffer for the 
+    mov dl, [inputBuf] 
+    cmp dl, 49
+    je exit
+
+    call game
+    jmp main
+    
+
+    exit:
+    ; exiting program
+    mov rax, 60 
+    xor rdi, rdi
+    syscall
+
+game:
     mov r12, 0 ;Current turn num
     ;Setting up game
     call resetTurn
@@ -38,7 +72,7 @@ _start:
     gameLoop:
     debug:
     call printBoard
-    call getInput
+    call getTurnInput
 
     call placeInput
     call checkGameWin
@@ -50,16 +84,14 @@ _start:
     inc r12
     cmp r12, 9
     jl gameLoop
+    ret
     
     gameOver: 
     ; printing the game over board
     call printBoard
 
     call printGameOver
-
-    mov rax, 60 
-    xor rdi, rdi
-    syscall
+    ret
 
 ;Functions
 
@@ -150,15 +182,64 @@ resetBoard:
     ret
 
 
-getInput:
+getTurnInput:
+    ; Printing spacer
+    inputTurnLoop:
+    mov rdi, spacer
+    mov rsi, spacerLen 
+    call printBuffer
+
+    ; Printing current turn
+    mov rdi, currentTurnText
+    mov rsi, currentTurnTextLen
+    call printBuffer
+
+    ; Printing current turn character
+    mov rdi, [currentTurn]
+    call printChar
+
+    ;Printing new line
+    mov rdi, 10
+    call printChar
+
+    mov rdi, turnInputText
+    mov rsi, turnInputTextLen
+    call printBuffer
+
     mov rax, 0
     mov rdi, 0
     mov rsi, inputBuf
     mov rdx, 255 
-
-    mov byte [inputLen], al
     syscall
+
+    ;validating the input
+    ;Checking second byte of the input buffer it must be new line for it to be valid input 
+    mov cl, [inputBuf + 1] 
+    cmp cl, 10
+    jne inputTurnLoop 
+
+    ;Checking the first byte to see if value is between 0-8
+    mov cl, [inputBuf]
+    cmp cl, 48 
+    jl inputFailed
+    cmp cl, 56 
+    jg inputFailed
+    
+    mov byte [inputLen], al
     ret
+
+    inputFailed:
+    mov rdi, spacer
+    mov rsi, spacerLen
+    call printBuffer
+
+    mov rdi, invalidInputText
+    mov rsi, invalidInputTextLen
+    call printBuffer
+
+    ; jumping back to inputLoop
+    jmp inputTurnLoop
+
 
 resetTurn:
     mov byte [currentTurn], 79
@@ -306,6 +387,8 @@ checkGameWin:
     cmp r8, r9
     jne allFailed
     cmp r9, r10
+    jne allFailed
+    cmp r8, ' '
     je allFailed
 
     mov rax, 1
@@ -344,6 +427,63 @@ printGameOver:
     mov rsi, spacerLen
     call printBuffer
     ret
+
+mainMenu: 
+    mov rdi, spacer
+    mov rsi, spacerLen
+    call printBuffer
+
+    mov rdi, mainBannerText
+    mov rsi, mainBannerTextLen
+    call printBuffer
+
+    mainMenuLoop:
+    mov rdi, spacer
+    mov rsi, spacerLen
+    call printBuffer
+
+    ;Printing main menu text
+    mov rdi, mainMenuText
+    mov rsi, mainMenuTextLen
+    call printBuffer
+
+    ;Getting input
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, inputBuf
+    mov rdx, 255 
+    syscall
+
+    ;Validating the input
+    ;Checking second byte of the input buffer it must be new line for it to be valid input 
+    mov cl, [inputBuf + 1] 
+    cmp cl, 10
+    jne mainMenuLoop 
+
+    ;Checking the first byte to see if value is between 0-8
+    mov cl, [inputBuf]
+    cmp cl, 48 
+    jl menuInputFailed
+    cmp cl, 49 
+    jg menuInputFailed
+    
+    mov byte [inputLen], al
+    ret
+
+    menuInputFailed:
+    mov rdi, spacer
+    mov rsi, spacerLen
+    call printBuffer
+
+    mov rdi, invalidInputText
+    mov rsi, invalidInputTextLen
+    call printBuffer
+
+    ; jumping back to inputLoop
+    jmp mainMenuLoop
+
+
+
 
 
 
